@@ -86,7 +86,7 @@ const Home = () => {
     return (
         <div style={containerStyle}>
             <div style={heroStyle}>
-                <h1 style={titleStyle}>Welcome to Event Ticketing System</h1>
+                <h1 style={titleStyle}>Welcome to Event Ticketing System2</h1>
                 <p style={subtitleStyle}>
                     Discover amazing events and book your tickets easily
                 </p>
