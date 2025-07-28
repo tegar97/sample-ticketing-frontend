@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { eventService, bookingService } from '../services/api';
+import { eventService, bookingService, ticketingService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const BookingFlow = () => {
     const { eventId } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
-    
+
     const [event, setEvent] = useState(null);
     const [quantity, setQuantity] = useState(1);
     const [loading, setLoading] = useState(true);
@@ -36,13 +36,24 @@ const BookingFlow = () => {
         setError('');
 
         try {
+            // Create booking
             const response = await bookingService.createBooking({
                 event_id: eventId,
                 quantity: quantity
             });
-            
-            setBooking(response.data.booking);
-            setStep(2);
+
+            const newBooking = response.data.booking;
+            setBooking(newBooking);
+
+            // Generate tickets
+            await ticketingService.generateTickets({
+                booking_id: newBooking.id,
+                event_id: eventId,
+                user_id: user.id,
+                quantity: quantity
+            });
+
+            setStep(3); // Go to payment step
         } catch (err) {
             setError(err.response?.data?.error || 'Booking failed');
         } finally {
@@ -50,19 +61,7 @@ const BookingFlow = () => {
         }
     };
 
-    const handleConfirmBooking = async () => {
-        setBookingLoading(true);
-        setError('');
-
-        try {
-            await bookingService.confirmBooking(booking.id);
-            setStep(3);
-        } catch (err) {
-            setError(err.response?.data?.error || 'Confirmation failed');
-        } finally {
-            setBookingLoading(false);
-        }
-    };
+    // Removed handleConfirmBooking as we're going directly to payment
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -166,8 +165,7 @@ const BookingFlow = () => {
         <div style={containerStyle}>
             <div style={stepIndicatorStyle}>
                 <div style={stepStyle(step >= 1)}>1. Select Tickets</div>
-                <div style={stepStyle(step >= 2)}>2. Confirm Booking</div>
-                <div style={stepStyle(step >= 3)}>3. Payment & Tickets</div>
+                <div style={stepStyle(step >= 3)}>2. Payment & Tickets</div>
             </div>
 
             {error && <div style={errorStyle}>{error}</div>}
@@ -175,7 +173,7 @@ const BookingFlow = () => {
             {step === 1 && (
                 <div>
                     <h2>Book Tickets for {event.title}</h2>
-                    
+
                     <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
                         <h3>{event.title}</h3>
                         <p>📍 {event.venue}</p>
@@ -211,49 +209,20 @@ const BookingFlow = () => {
                                 backgroundColor: bookingLoading ? '#bdc3c7' : '#2ecc71'
                             }}
                         >
-                            {bookingLoading ? 'Processing...' : 'Proceed to Booking'}
+                            {bookingLoading ? 'Processing...' : 'Proceed to Payment'}
                         </button>
                     </div>
                 </div>
             )}
 
-            {step === 2 && booking && (
-                <div>
-                    <h2>Confirm Your Booking</h2>
-                    
-                    <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                        <h3>Booking Details</h3>
-                        <p><strong>Event:</strong> {event.title}</p>
-                        <p><strong>Venue:</strong> {event.venue}</p>
-                        <p><strong>Date:</strong> {formatDate(event.event_date)}</p>
-                        <p><strong>Tickets:</strong> {booking.quantity}</p>
-                        <p><strong>Total Amount:</strong> {formatPrice(booking.total_amount)}</p>
-                        <p><strong>Booking ID:</strong> {booking.id}</p>
-                    </div>
-
-                    <div style={formStyle}>
-                        <p>Please review your booking details and confirm to proceed with payment.</p>
-                        
-                        <button
-                            onClick={handleConfirmBooking}
-                            disabled={bookingLoading}
-                            style={{
-                                ...buttonStyle,
-                                backgroundColor: bookingLoading ? '#bdc3c7' : '#2ecc71'
-                            }}
-                        >
-                            {bookingLoading ? 'Processing Payment...' : 'Confirm & Pay'}
-                        </button>
-                    </div>
-                </div>
-            )}
+            {/* Confirmation step removed - going directly to payment */}
 
             {step === 3 && (
                 <div style={successStyle}>
                     <h2>🎉 Booking Successful!</h2>
-                    <p>Your tickets have been booked successfully.</p>
-                    <p>You will receive your digital tickets shortly.</p>
-                    
+                    <p>Your tickets have been booked and generated successfully.</p>
+                    <p>Your digital tickets are now ready to view.</p>
+
                     <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                         <button
                             onClick={() => navigate('/my-bookings')}
@@ -261,7 +230,7 @@ const BookingFlow = () => {
                         >
                             View My Bookings
                         </button>
-                        
+
                         <button
                             onClick={() => navigate('/my-tickets')}
                             style={{...buttonStyle, backgroundColor: '#3498db'}}
