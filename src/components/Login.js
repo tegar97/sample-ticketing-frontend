@@ -178,6 +178,7 @@ const Login = () => {
                 <div style={linkStyle}>
                     Don't have an account? <Link to="/register" style={linkTextStyle}>Create one here</Link>
                 </div>
+
             </div>
         </div>
     );

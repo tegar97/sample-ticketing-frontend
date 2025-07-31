@@ -15,7 +15,7 @@ const Navbar = () => {
         background: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
         borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
-        padding: '1rem 0',
+        padding: '2rem 0',
         position: 'sticky',
         top: 0,
         zIndex: 1000
